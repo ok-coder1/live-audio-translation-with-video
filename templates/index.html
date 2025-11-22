@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC + Flask + SocketIO</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebRTC Test</h1>
+    <video id="local" autoplay playsinline></video>
+    <video id="remote" autoplay playsinline></video>
+
+<script>
+const socket = io();
+
+// Create a peer connection
+const pc = new RTCPeerConnection();
+
+// Display local webcam
+navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    .then(stream => {
+        document.getElementById("local").srcObject = stream;
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    });
+
+// When remote stream arrives
+pc.ontrack = event => {
+    document.getElementById("remote").srcObject = event.streams[0];
+};
+
+// Send ICE candidates to signaling server
+pc.onicecandidate = event => {
+    if (event.candidate) {
+        socket.emit("signal", { ice: event.candidate });
+    }
+};
+
+// Receive signaling data
+socket.on("signal", async data => {
+    if (data.offer) {
+        await pc.setRemoteDescription(data.offer);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("signal", { answer });
+    }
+    else if (data.answer) {
+        await pc.setRemoteDescription(data.answer);
+    }
+    else if (data.ice) {
+        await pc.addIceCandidate(data.ice);
+    }
+});
+
+// Start call (send offer)
+async function startCall() {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit("signal", { offer });
+}
+
+startCall();
+</script>
+</body>
+</html>
