@@ -13,7 +13,7 @@
   <video id="local" autoplay muted playsinline></video>
   <video id="remote" autoplay playsinline></video>
 
-  <form action="{{ url_for('recognize_speech') }}" method="post">
+  <form action="{{ url_for('set_lang') }}" method="post">
     <label for="language">Choose a language:</label>
     <select name="language" id="language">
       <option value="en">English</option>
@@ -249,7 +249,7 @@
 <body>
   <h2>Real-Time Language Translator</h2>
   <video id="video" autoplay playsinline></video>
-  <form action="{{ url_for('recognize_speech') }}" method="post">
+  <form action="{{ url_for('set_lang') }}" method="post">
     <label for="og_language">Choose the language you want to speak in:</label>
     <select name="og_language" id="og_language">
       <option value="en">English</option>
@@ -260,6 +260,8 @@
       <option value="pt">Portuguese</option>
       <option value="it">Italian</option>
     </select>
+  </form>
+  <form action="{{ url_for('set_lang') }}" method="post">
     <label for="translated_language">Choose the language you want your speech translated to:</label>
     <select name="translated_language" id="translated_language">
       <option value="en">English</option>
@@ -270,75 +272,24 @@
       <option value="pt">Portuguese</option>
       <option value="it">Italian</option>
     </select>
-    <button type="submit">Submit</button>
   </form>
-  <audio id="audio" autoplay hidden></audio>
-  <button type="button" id="start">Start Recording</button>
-  <button type="button" id="stop">Stop Recording</button>
-  <p id="translated_speech"></p>
 
   <script>
     async function start() {
-      const startButton = document.getElementById('start');
-      const stopButton = document.getElementById('stop');
-      const translated_speech = document.getElementById('translated_speech');
       const video = document.getElementById("video");
-      const audio = document.getElementById("audio");
       let mediaRecorder;
       const socket = new WebSocket('ws://localhost:5000/ws');
-      socket.binaryType = "arraybuffer";
 
-      stopButton.disabled = true;
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       video.srcObject = stream;
+      mediaRecorder = new MediaRecorder(stream);
 
-      socket.onmessage = (e) => {
-        translated_speech.innerText = e.data;
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            socket.send(event.data);
+        }
       };
-
-      startButton.addEventListener('click', async () => {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audio.srcObject = audioStream;
-        mediaRecorder = new MediaRecorder(audioStream, { mimeType: "audio/webm;codecs=opus" });
-
-        let recordedChunks = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-                recordedChunks.push(event.data);
-            }
-        };
-
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(recordedChunks, { type: "audio/webm;codecs=opus" });
-            const buffer = await blob.arrayBuffer();
-            socket.send(buffer);  // Send complete file at once
-            recordedChunks = [];
-            audioStream.getTracks().forEach(track => track.stop());
-
-        };
-
-        mediaRecorder.start();  // No timeslice - collect everything
-
-        // mediaRecorder.ondataavailable = async (event) => {
-        //     if (event.data.size > 0) {
-        //         const buffer = await event.data.arrayBuffer();
-        //         socket.send(buffer);
-        //     }
-        // };
-        // mediaRecorder.onstop = () => {
-        //     audioStream.getTracks().forEach(track => track.stop());
-        // };
-        // mediaRecorder.start(100);
-        startButton.disabled = true;
-        stopButton.disabled = false;
-        return audioStream;
-      });
-      stopButton.addEventListener('click', () => {
-        mediaRecorder.stop();
-        startButton.disabled = false;
-        stopButton.disabled = true;
-      });
+      mediaRecorder.start(100);
     }
     start();
   </script>
