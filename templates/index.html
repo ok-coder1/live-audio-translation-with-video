@@ -261,7 +261,10 @@
       <option value="it">Italian</option>
       <option value="ta">Tamil</option>
       <option value="ml">Malayalam</option>
+      <option value="de">German</option>
     </select>
+    <br>
+    <br>
     <label for="translated_language">Choose the language you want your speech translated to:</label>
     <select name="translated_language" id="translated_language">
       <option value="en">English</option>
@@ -273,12 +276,18 @@
       <option value="it">Italian</option>
       <option value="ta">Tamil</option>
       <option value="ml">Malayalam</option>
+      <option value="de">German</option>
     </select>
+    <br>
+    <br>
     <button type="submit">Submit</button>
   </form>
   <audio id="audio" autoplay hidden></audio>
+  <br>
+  <br>
   <button type="button" id="start">Start Recording</button>
   <button type="button" id="stop">Stop Recording</button>
+  <br>
   <p id="translated_speech"></p>
 
   <script>
@@ -289,7 +298,7 @@
       const video = document.getElementById("video");
       const audio = document.getElementById("audio");
       let mediaRecorder;
-      const socket = new WebSocket('ws://localhost:5000/ws');
+      const socket = new WebSocket('ws://localhost:1265/ws');
       socket.binaryType = "arraybuffer";
 
       stopButton.disabled = true;
