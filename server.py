@@ -12,6 +12,7 @@ translator = None
 translated_speech = None
 og_language = translated_language = None
 
+
 @app.route("/recognize_speech", methods=["POST"])
 async def recognize_speech():
     global translator, og_language, translated_language
